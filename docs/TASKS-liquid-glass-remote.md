@@ -67,6 +67,25 @@ Apple TV 遥控器的体验要点:**大面积深色留白、触控板居中、�
 - [ ] 按下动画:玻璃压缩回弹(参考 graphics-animation.md)
 - [ ] 按钮可见性由 `supportedKeys` 驱动,缺的键不显示(不是置灰)
 
+### Task 1B — Click Wheel 变体布局(iPod 风格,与触控板可切换)
+**为什么是可行的:** Click Wheel 的控制词汇与 SDK 通用键 1:1 对应,零 SDK 改动、天然品牌无关。
+
+| Click Wheel | SDK 通用键 |
+|---|---|
+| 旋转(带步进) | `volumeUp`/`volumeDown`(或导航步进,见下) |
+| 上(Menu) | `back` 或 `menu` |
+| 中心 | `confirm` |
+| 左/右(⏮⏭) | `rewind`/`fastForward`(媒体时)或 `left`/`right`(导航时) |
+| 下(⏯) | `play`/`pause` |
+
+- [ ] `ClickWheelView` 组件:外环 + 中心键,`DragGesture` + `atan2` 算圆心角,累加角位移过 ±π 回绕
+- [ ] **步进(detent)模型**:每 ~15–20° 一个步进,跨步进触发 `UISelectionFeedbackGenerator` 的 tick —— 这就是 Click Wheel 的灵魂,不能省
+- [ ] **网络节流(真实风险,必须处理)**:iPod 滚列表是本地的,我们每个步进都是一次 HTTP 请求。音量不要用旋转狂发 `volumeUp`;做法:读一次 `volumeState`,旋转只改本地值,停止/间隔 ~300ms 后发一次 `setVolume(absolute)`。导航步进则按固定频率上限(如 5 次/秒)发 `press`
+- [ ] 旋转语义切换:默认音量;长按环或按上下文(音量 HUD 弹出时)切换。导航模式下旋转 = 上下步进,适合纯列表页,2D 网格页别强用
+- [ ] 与 Task 1 触控板布局做成**可切换的两种皮肤**(设置里选),不是替换关系 —— Click Wheel 强在音量/快进退,弱在 2D 网格导航
+- [ ] 玻璃呈现:环形 `.glassEffect(…, in: .circle)` + 中心独立玻璃圆;按下区域 morph 反馈
+- [ ] 备注(不影响自用):苹果曾下架过仿 iPod 的 App(Rewound)。本项目免费签名自用无所谓;若将来想上架,皮肤要避开 iPod 商标元素(点击器音效名、iPod 字样)
+
 ### Task 2 — 设备发现页
 - [ ] 启动进入发现页:Bonjour + 子网扫描(SDK `discover()`,Phase 6 若未完成先用「手动输 IP」过渡,UI 结构不变)
 - [ ] 电视卡片:型号名 + 品牌 + 在线状态;玻璃卡片浮于深色背景
