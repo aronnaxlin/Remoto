@@ -18,3 +18,8 @@ Secrets.xcconfig
 
 # macOS
 .DS_Store
+
+# Documentation
+*.md
+!README.md
+!CLAUDE.md

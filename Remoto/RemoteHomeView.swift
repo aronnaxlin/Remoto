@@ -19,6 +19,7 @@ struct RemoteHomeView: View {
     @Namespace private var modeBarNamespace
     @State private var activeSheet: ActiveSheet?
     @State private var debugHost: String = ""
+    @State private var debugPSK: String = ""
 
     var body: some View {
         ZStack {
@@ -79,18 +80,25 @@ struct RemoteHomeView: View {
 
             // Bootstrap-only connect row, replaced by the discovery flow in Task 2.
             if !model.isConnected {
-                HStack {
+                HStack(spacing: 10) {
                     TextField("TV IP address", text: $debugHost)
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.numbersAndPunctuation)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .frame(maxWidth: .infinity)
+                    TextField("PSK", text: $debugPSK)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.numberPad)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .frame(width: 100)
                     Button("Connect") {
-                        Task { await model.connect(host: debugHost) }
+                        Task { await model.connect(host: debugHost, preSharedKey: debugPSK.isEmpty ? nil : debugPSK) }
                     }
-                    .disabled(debugHost.isEmpty)
+                    .disabled(debugHost.isEmpty || debugPSK.isEmpty)
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 24)
             }
         }
         .padding(.top, 16)
@@ -101,7 +109,7 @@ struct RemoteHomeView: View {
         case .disconnected: return "Not connected"
         case .connecting: return "Connecting…"
         case .connected: return model.deviceName
-        case .failed: return "Connection failed"
+        case .failed(let reason): return reason
         }
     }
 
@@ -119,11 +127,14 @@ struct RemoteHomeView: View {
         GlassEffectContainer(spacing: 40) {
             HStack(alignment: .center, spacing: 40) {
                 functionKeys
-                if model.supports(.volumeUp) || model.supports(.volumeDown) {
-                    GlassVolumeRocker(
-                        onUp: { model.press(.volumeUp) },
-                        onDown: { model.press(.volumeDown) }
+                if model.supportsAbsoluteVolume {
+                    VolumeSlider(
+                        level: model.volume?.level ?? 0,
+                        isMuted: model.volume?.isMuted ?? false,
+                        maxLevel: model.volume?.maxLevel ?? 100,
+                        onCommit: { model.setVolume($0) }
                     )
+                    .frame(width: 64, height: 176)
                 }
             }
         }

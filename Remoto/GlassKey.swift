@@ -68,34 +68,3 @@ struct GlassCircleKey: View {
         return g
     }
 }
-
-/// The two-piece volume key, modelled on a physical remote's rocker:
-/// one long glass pill, "+" on top, "−" below, a hairline gap between.
-struct GlassVolumeRocker: View {
-    let onUp: () -> Void
-    let onDown: () -> Void
-
-    var body: some View {
-        GlassEffectContainer(spacing: 4) {
-            VStack(spacing: 4) {
-                rockerButton(systemImage: "plus", label: "Volume Up", action: onUp)
-                rockerButton(systemImage: "minus", label: "Volume Down", action: onDown)
-            }
-        }
-    }
-
-    private func rockerButton(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
-        Button {
-            KeyPressWeight.light.fire()
-            action()
-        } label: {
-            Image(systemName: systemImage)
-                .font(.system(size: 20, weight: .medium))
-                .frame(width: 62, height: 76)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 31))
-        .accessibilityLabel(label)
-    }
-}

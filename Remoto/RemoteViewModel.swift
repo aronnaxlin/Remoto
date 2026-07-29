@@ -34,6 +34,12 @@ final class RemoteViewModel {
         capabilities?.supports(key) ?? true // optimistic until capabilities load
     }
 
+    /// Whether the device reports an absolute-volume feature; the slider
+    /// needs it, so UI checks this rather than inferring from keys.
+    var supportsAbsoluteVolume: Bool {
+        capabilities?.supports(.volumeAbsolute) ?? true
+    }
+
     // MARK: - Connection
 
     /// Temporary bootstrap for UI bring-up: connect straight to a host.
@@ -79,6 +85,31 @@ final class RemoteViewModel {
     func refreshVolume() async {
         guard let session else { return }
         volume = try? await session.volumeState()
+    }
+
+    /// Absolute volume set, used by the Control Center–style slider.
+    /// Optimistically updates the on-screen level so the slider doesn't snap
+    /// back while the request is in flight; re-reads on completion.
+    func setVolume(_ level: Int) {
+        lastError = nil
+        if let current = volume {
+            volume = VolumeState(
+                level: level,
+                minLevel: current.minLevel,
+                maxLevel: current.maxLevel,
+                isMuted: false,
+                target: current.target
+            )
+        }
+        Task {
+            do {
+                try await session?.setVolume(level)
+                await refreshVolume()
+            } catch {
+                lastError = Self.describe(error)
+                await refreshVolume() // revert to the truth on failure
+            }
+        }
     }
 
     // MARK: - Key presses
