@@ -23,3 +23,8 @@ Secrets.xcconfig
 *.md
 !README.md
 !CLAUDE.md
+
+# Agent Skills & Tooling
+.claude/
+.agents/
+skills-lock.json
