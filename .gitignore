@@ -1,0 +1,20 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.moved-aside
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# 本地凭据 —— 预共享密钥等绝不入库
+*.xcconfig.local
+Secrets.xcconfig
+.env
+
+# macOS
+.DS_Store
