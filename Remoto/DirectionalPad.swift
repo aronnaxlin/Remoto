@@ -15,6 +15,10 @@ struct DirectionalPad: View {
     let onDirection: (RemoteDirection) -> Void
     let onConfirm: () -> Void
 
+    /// VoiceOver needs the gesture-based ring re-expressed as four buttons;
+    /// the ring itself is one continuous surface with no per-direction node.
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+
     var body: some View {
         GeometryReader { proxy in
             let size = min(proxy.size.width, proxy.size.height)
@@ -28,6 +32,17 @@ struct DirectionalPad: View {
         }
         .aspectRatio(1, contentMode: .fit)
         .frame(maxWidth: Self.defaultSize)
+        .accessibilityElement(children: voiceOver ? .ignore : .contain)
+        .accessibilityAdjustableAction { direction in
+            // VoiceOver rotor: swipe up/down steps through directions and
+            // confirm, keeping the D-pad one stop instead of five.
+            KeyPressWeight.light.fire()
+            switch direction {
+            case .increment: onDirection(.up)
+            case .decrement: onDirection(.down)
+            @unknown default: break
+            }
+        }
     }
 
     private func ring(size: CGFloat, center: CGPoint, centerRadius: CGFloat) -> some View {
