@@ -30,6 +30,9 @@ struct ModeTabBar: View {
     /// Fixed on purpose: a tab bar that resizes is not a landmark.
     static let stripHeight: CGFloat = 52
     private static let barPadding: CGFloat = 8
+    /// The uniform vertical extent every icon is laid out in. Must be at least as
+    /// tall as the tallest glyph in the bar; raise it if a taller icon is added.
+    private static let iconBox: CGFloat = 26
     static var barHeight: CGFloat { stripHeight + barPadding * 2 }
 
     @Namespace private var barNamespace
@@ -64,6 +67,14 @@ struct ModeTabBar: View {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .medium))
+                    // SF Symbols do not share a drawn height — at 20pt medium
+                    // `keyboard` measures 19pt tall and `cable.connector` 26pt.
+                    // Sized by font alone each item's stack comes out a different
+                    // height, and centering that in the strip puts every label on
+                    // its own baseline. A fixed box makes the icons agree on one
+                    // vertical extent, so the labels line up. Sized to the tallest
+                    // glyph so none of them overflows into the label's gap.
+                    .frame(height: Self.iconBox)
                 Text(title)
                     .font(.caption2)
             }
