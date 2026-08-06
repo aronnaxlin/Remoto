@@ -2,9 +2,15 @@
 
 An iOS app for controlling TVs on your local network. No server, no cloud, no account.
 
-All protocol work lives in [TVRemoteKit](../TVRemoteKit), a generic SDK where each TV brand
-is a pluggable driver. **Remoto's goal is to expose whatever the SDK supports** — as drivers
-land in the SDK, Remoto gains brands without redesign. Sony BRAVIA is the first.
+All protocol work lives in [TVRemoteKit](https://github.com/aronnaxlin/TVRemoteKit), a
+generic SDK where each TV brand is a pluggable driver. **Remoto's goal is to expose whatever
+the SDK supports** — as drivers land in the SDK, Remoto gains brands without redesign. Sony
+BRAVIA is the first.
+
+The project depends on it as a remote Swift package tracking `main`, pinned in
+`Package.resolved`, so a fresh clone builds with no setup. When changing both at once, drag
+a local checkout into the project navigator to override the remote package — and keep that
+override out of commits, since it only resolves on a machine that has the SDK at that path.
 
 ## The one rule
 

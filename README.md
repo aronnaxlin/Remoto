@@ -12,6 +12,26 @@ This app serves two purposes:
 - **Brand Agnostic:** The UI layer knows absolutely nothing about Sony or any other brand. It renders dynamically based on the capabilities advertised by the TVRemoteKit driver.
 - **Privacy First:** No cloud accounts, no external tracking, no local network requests other than to your own TV.
 
+## Getting Started
+
+```sh
+git clone https://github.com/aronnaxlin/Remoto.git
+cd Remoto
+open Remoto.xcodeproj
+```
+
+Xcode resolves [TVRemoteKit](https://github.com/aronnaxlin/TVRemoteKit) from GitHub the first time the project opens — there is nothing to install and no second checkout to arrange. Pick your device and press Run.
+
+**Signing.** The project builds under a free Apple ID. Select your own team under *Signing & Capabilities*, and change the bundle identifier if `dev.aronnax.Remoto` is already claimed on your account. A free account's certificate expires after seven days, after which the app stops launching until you build to the device again. The first install also needs the developer trusted under *Settings → General → VPN & Device Management*.
+
+**The SDK pin.** The dependency follows TVRemoteKit's `main` branch, resolved to a specific commit in `Package.resolved`. That file is committed on purpose: a branch dependency without it would hand every clone whatever `main` happened to be that day, rather than a revision this app was actually built against. To take a newer SDK, use *File → Packages → Update to Latest Package Versions* and commit the updated pin.
+
+### Developing against a local TVRemoteKit
+
+When changing the SDK and the app together, drag a local `TVRemoteKit` checkout into the Xcode project navigator. Xcode then prefers the local package over the published one, and SDK edits take effect on the next build; removing it from the navigator restores the remote dependency.
+
+Note that Xcode records this override in `project.pbxproj`, so leave it out of your commits — otherwise the project stops resolving for anyone who does not have the SDK at that path, which is exactly what this arrangement is meant to prevent.
+
 ## Relationship with TVRemoteKit
 
 | Repository | Responsibility |

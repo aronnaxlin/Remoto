@@ -9,7 +9,10 @@ DerivedData/
 # SwiftPM
 .build/
 .swiftpm/
-Package.resolved
+# Package.resolved is deliberately tracked. The TVRemoteKit dependency follows a
+# branch, so without the resolved commit every clone gets whatever main happens to
+# be that day. This is an app, not a library — it should pin what it was built and
+# tested against.
 
 # 本地凭据 —— 预共享密钥等绝不入库
 *.xcconfig.local

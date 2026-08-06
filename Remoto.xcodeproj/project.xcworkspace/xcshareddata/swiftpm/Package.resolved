@@ -1,0 +1,15 @@
+{
+  "originHash" : "668632fb1c1153e401af5bb54e79b5cb1b7e535da0f209298e639cddaa57c4c0",
+  "pins" : [
+    {
+      "identity" : "tvremotekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/aronnaxlin/TVRemoteKit.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "f442124da71e69f283c67d9050602807abd56cd4"
+      }
+    }
+  ],
+  "version" : 3
+}

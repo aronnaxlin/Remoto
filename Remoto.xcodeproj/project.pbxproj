@@ -114,7 +114,7 @@
 			mainGroup = 2A00000000000000000090;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				2A00000100000000000000C2 /* XCLocalSwiftPackageReference "../TVRemoteKit" */,
+				2A00000100000000000000C2 /* XCRemoteSwiftPackageReference "TVRemoteKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2A000000000000000000A3 /* Products */;
@@ -363,16 +363,21 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		2A00000100000000000000C2 /* XCLocalSwiftPackageReference "../TVRemoteKit" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../TVRemoteKit;
+/* Begin XCRemoteSwiftPackageReference section */
+		2A00000100000000000000C2 /* XCRemoteSwiftPackageReference "TVRemoteKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/aronnaxlin/TVRemoteKit.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		2A00000100000000000000C0 /* TVRemoteKit */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 2A00000100000000000000C2 /* XCRemoteSwiftPackageReference "TVRemoteKit" */;
 			productName = TVRemoteKit;
 		};
 /* End XCSwiftPackageProductDependency section */
