@@ -11,7 +11,13 @@ import TVRemoteKit
 struct ConnectionView: View {
     let model: AppModel
 
+    /// Plain HTTP, the port a TV's own control service listens on. Only a
+    /// starting point: the field is editable precisely because the SDK's other
+    /// drivers are not all there.
+    private static let defaultManualPort = 80
+
     @State private var manualHost = ""
+    @State private var manualPort = ""
     @State private var manualSecret = ""
     @State private var showManualEntry = false
     /// Local mirror of the pairing prompt so `.sheet(item:)` gets a binding
@@ -59,6 +65,29 @@ struct ConnectionView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Only when a session is still running underneath. Opened from the
+            // remote's device button this screen is a detour, and a detour needs
+            // a way back that is not "pick something"; reached on first launch or
+            // after a failed reconnect there is nothing behind it, and a Done
+            // button would lead nowhere.
+            if model.canReturnToRemote {
+                Button {
+                    KeyPressWeight.light.fire()
+                    model.returnToRemote()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.footnote.weight(.semibold))
+                        Text("Remote")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+                .accessibilityLabel("Back to the remote")
+            }
+
             Text("Connect a TV")
                 .font(.largeTitle.bold())
             Text("Remoto controls TVs on your home network. Nothing leaves this network.")
@@ -200,10 +229,18 @@ struct ConnectionView: View {
 
             if showManualEntry {
                 VStack(spacing: 12) {
-                    TextField("TV IP address (e.g. 192.168.1.20)", text: $manualHost)
+                    TextField("IP address (e.g. 192.168.1.20)", text: $manualHost)
                         .keyboardType(.numbersAndPunctuation)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .padding(14)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+                    // Asked for, not guessed: drivers listen on different ports
+                    // (a media-center app is not on the TV's own web port), and
+                    // the app is not allowed to know which brand uses which.
+                    // Blank means 80, which is what a TV's own service uses.
+                    TextField("Port (leave empty for \(Self.defaultManualPort))", text: $manualPort)
+                        .keyboardType(.numberPad)
                         .padding(14)
                         .glassEffect(.regular, in: .rect(cornerRadius: 14))
                     // Optional: leaving it empty is the normal path — the TV
@@ -220,6 +257,8 @@ struct ConnectionView: View {
                         Task {
                             await model.connectManual(
                                 host: manualHost,
+                                port: Int(manualPort.trimmingCharacters(in: .whitespaces))
+                                    ?? Self.defaultManualPort,
                                 secret: manualSecret.isEmpty ? nil : manualSecret
                             )
                         }

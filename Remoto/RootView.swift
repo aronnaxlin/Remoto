@@ -18,7 +18,7 @@ struct RootView: View {
             case .remote:
                 if let remote {
                     RemoteHomeView(model: remote) {
-                        model.disconnect()
+                        model.showDevicePicker()
                     }
                     .transition(.opacity)
                 } else {

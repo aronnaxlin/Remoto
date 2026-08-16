@@ -25,6 +25,11 @@ enum KeyPressWeight {
 /// Liquid Glass requires iOS 26, which is also this app's deployment target, so
 /// no material fallback is needed anywhere in the codebase.
 struct GlassCircleKey: View {
+    /// Published because the volume bar above the key row lines its ends up with
+    /// the outermost keys' edges, and it can only do that arithmetic if it knows
+    /// how wide a key is.
+    static let diameter: CGFloat = 62
+
     let systemImage: String
     let accessibilityLabel: String
     let weight: KeyPressWeight
@@ -52,7 +57,7 @@ struct GlassCircleKey: View {
         } label: {
             Image(systemName: systemImage)
                 .font(.system(size: 22, weight: .medium))
-                .frame(width: 62, height: 62)
+                .frame(width: Self.diameter, height: Self.diameter)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)

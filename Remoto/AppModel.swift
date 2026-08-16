@@ -129,6 +129,10 @@ final class AppModel {
         let credentials = explicitCredentials ?? stored?.credentials ?? .none
         let model = remote ?? RemoteViewModel()
         remote = model
+        // The picker leaves the previous session running so that backing out of
+        // it costs nothing; the moment another device is chosen, that session is
+        // the one thing that must not linger.
+        if model.isConnected { await model.endSession() }
 
         do {
             try await model.connect(to: identity, credentials: credentials)
@@ -159,37 +163,58 @@ final class AppModel {
         }
     }
 
-    /// Manual-IP entry: builds a provisional identity and runs the same flow.
+    /// Manual entry: asks the SDK to identify whatever is at that address, then
+    /// connects to what it found.
     ///
-    /// A typed-in address says nothing about the brand, so the identity is built
-    /// against the first bundled driver and `connect()` corrects it — the
-    /// session's `refreshIdentity()` result carries the real driver's ID, and
-    /// `migrateID` moves the stored record onto it.
-    func connectManual(host: String, secret: String?) async {
+    /// A typed-in address says nothing about the brand, and the app is not
+    /// allowed to guess one. `.manual` runs the same two-stage identification as
+    /// a network scan — every bundled driver is offered the endpoint and the one
+    /// that recognises it claims it — so the resulting identity already carries
+    /// the right driver, port and name. Building the identity here instead meant
+    /// stamping `bundledDrivers.first` on it, which was harmless while one driver
+    /// shipped and became a wrong answer the moment a second one did.
+    func connectManual(host: String, port: Int, secret: String?) async {
         let trimmed = host.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty,
-              let driver = TVRemoteKit.bundledDrivers.first else { return }
-        let identity = DeviceIdentity(
-            id: DeviceID("manual:\(trimmed)"),
-            idSource: .provisional,
-            driverID: driver.id,
-            host: trimmed,
-            port: 80,
-            displayName: trimmed
+        guard !trimmed.isEmpty else { return }
+        isConnecting = true
+        connectionError = nil
+        connectingIdentity = nil
+
+        let found = try? await TVRemoteKit.discover(
+            using: [.manual(host: trimmed, port: port)],
+            deadline: .seconds(8)
         )
-        // Whatever kind the driver asks for — the app does not decide that.
+        isConnecting = false
+
+        guard let identity = found?.first?.identity else {
+            connectionError = "Nothing at \(trimmed):\(port) answered as a device Remoto can control. "
+                + "Check the address and port, and that the device is awake."
+            return
+        }
+        // The kind of secret is the claiming driver's business, not the app's.
         let credentials = secret.flatMap { value -> Credentials? in
-            guard !value.isEmpty else { return nil }
+            guard !value.isEmpty,
+                  let driver = RemoteViewModel.driver(for: identity) else { return nil }
             return Credentials(kind: driver.requiredCredential.kind, secret: value)
         }
         await connect(to: identity, credentials: credentials)
     }
 
-    /// "Switch TV" — drops the live session and returns to the connection
-    /// screen. The stored record stays; this is switching, not forgetting.
-    func disconnect() {
-        Task { await remote?.endSession() }
+    /// Whether there is a live session to go back to — the device list shows a
+    /// way out only when leaving it would land somewhere.
+    var canReturnToRemote: Bool { remote?.isConnected == true }
+
+    /// "Switch TV" / the remote's device button: shows the device list *without*
+    /// tearing the session down, so backing out of it costs nothing. The session
+    /// only ends when another device is actually chosen (see `connect`).
+    func showDevicePicker() {
         route = .connect
+    }
+
+    /// Back to the remote, for a device list opened on top of a live session.
+    func returnToRemote() {
+        guard canReturnToRemote else { return }
+        route = .remote
     }
 
     // MARK: - Pairing

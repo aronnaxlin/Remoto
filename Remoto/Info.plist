@@ -4,10 +4,19 @@
 <dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Remoto uses your local network to find and control your TV. Nothing leaves your home network.</string>
+	<!--
+	  Every service type any bundled driver browses. iOS blocks a browse for a
+	  type that is not declared here, and it fails silently: the driver looks
+	  broken, discovery just returns nothing. So this list has to be kept in
+	  step with the SDK's drivers by hand: a plist cannot ask the SDK, and the
+	  SDK does not publish the union either — `bonjourServiceTypes` is a static
+	  on each concrete driver, invisible through `any TVDriver`.
+	-->
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_androidtvremote._tcp</string>
 		<string>_googlecast._tcp</string>
+		<string>_xbmc-jsonrpc-h._tcp</string>
 	</array>
 </dict>
 </plist>

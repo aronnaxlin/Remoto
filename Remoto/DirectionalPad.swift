@@ -9,8 +9,10 @@ import SwiftUI
 /// direction and slides to the center still resolves to the direction the
 /// gesture *began* on, matching how the physical clickpad is zoned.
 struct DirectionalPad: View {
-    /// Edge length of the whole pad, including the ring.
-    static let defaultSize: CGFloat = 300
+    /// Edge length cap for the whole pad, including the ring. High enough that
+    /// the content width, not this number, is the real limit on a phone: the pad
+    /// is the screen's subject, and anything smaller left it swimming.
+    static let defaultSize: CGFloat = 400
 
     let onDirection: (RemoteDirection) -> Void
     let onConfirm: () -> Void
@@ -50,6 +52,10 @@ struct DirectionalPad: View {
             .fill(.clear)
             .contentShape(Circle())
             .glassEffect(.regular.interactive(), in: .circle)
+            // On a near-black background the glass has no edge to catch, so the
+            // disc dissolves into the wall it sits on. One hairline gives it a
+            // rim; without it the pad reads as a smudge, not an object.
+            .overlay { Circle().strokeBorder(.white.opacity(0.09), lineWidth: 1) }
             .overlay {
                 // Faint etched direction marks so the ring reads as a D-pad
                 // without four separate glass pieces fighting each other.
@@ -81,8 +87,10 @@ struct DirectionalPad: View {
             Image(systemName: "chevron.right")
                 .offset(x: offset)
         }
-        .font(.system(size: 18, weight: .semibold))
-        .foregroundStyle(.secondary)
+        .font(.system(size: 20, weight: .semibold))
+        // `.secondary` is tuned for text on a background, not glyphs on glass:
+        // it left the only affordance on the pad the dimmest thing on screen.
+        .foregroundStyle(.white.opacity(0.7))
         .allowsHitTesting(false)
     }
 
@@ -98,6 +106,10 @@ struct DirectionalPad: View {
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)
+        // Same reason as the ring's rim, and here it also draws the boundary
+        // between the two concentric pieces — the only thing that says the
+        // center is a separate button.
+        .overlay { Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1) }
         .accessibilityLabel("Confirm")
     }
 }

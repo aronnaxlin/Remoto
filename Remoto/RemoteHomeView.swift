@@ -4,9 +4,9 @@ import TVRemoteKit
 
 /// The remote home screen — the app's destination, not a waypoint.
 ///
-/// Layout (top to bottom): TV name + status, directional pad, function keys,
-/// volume rocker, and `ModeTabBar` pinned to the bottom with four entries:
-/// Remote, Keyboard, Inputs, More.
+/// Layout (top to bottom): TV name + status, directional pad, the volume bar,
+/// the function keys it spans, and `ModeTabBar` pinned to the bottom with four
+/// entries: Remote, Keyboard, Inputs, More.
 ///
 /// Three layers, deliberately independent, because each has a different answer to
 /// "what happens when something grows":
@@ -40,6 +40,9 @@ struct RemoteHomeView: View {
     /// it. Opting the container out pins everything — and then the one layer that
     /// should move is lifted by hand.
     @State private var keyboardOverlap: CGFloat = 0
+    /// Width of the control cluster, measured so the volume bar can be inset to
+    /// the key row's own edges. See `keyEdgeInset`.
+    @State private var controlWidth: CGFloat = 0
 
     init(model: RemoteViewModel, onSwitchTV: @escaping () -> Void = {}) {
         self.model = model
@@ -54,6 +57,18 @@ struct RemoteHomeView: View {
     /// The remote reserves exactly the tab bar's height, so opening a panel — which
     /// floats above the bar — never moves anything up here.
     private static var collapsedDockHeight: CGFloat { ModeTabBar.barHeight }
+
+    /// How far the tab bar floats above the bottom safe area.
+    private static let barLift: CGFloat = 12
+
+    /// Visible air between the round keys and the tab bar — counted from the
+    /// bar's *top edge*, which is why `barLift` is in the sum below; leaving it
+    /// out is what put the two rows flush against each other.
+    ///
+    /// Generous on purpose: two Liquid Glass surfaces this close stop reading as
+    /// two pieces — the keys' rims and the bar's capsule bleed into one another
+    /// and the row looks welded onto the dock. Glass has to be given room.
+    private static let dockClearance: CGFloat = 34
 
     var body: some View {
         GeometryReader { proxy in
@@ -93,23 +108,30 @@ struct RemoteHomeView: View {
             // that competes for space, because an expanding panel would then
             // squeeze the D-pad — and the squeeze is what makes a blind-operated
             // remote unusable, since the buttons move under the thumb.
-            VStack(spacing: 24) {
+            // One spacer, not two. Two split the screen's slack into a pair of
+            // equal voids — one above the pad, one below it — which left the pad
+            // floating mid-screen between two chasms and the controls stranded
+            // at the bottom: three islands, no instrument. With a single spacer
+            // the pad, the volume bar and the keys stay welded together at a
+            // fixed rhythm and sit low, where the hand is; all the slack
+            // collects in one deliberate field under the title.
+            VStack(spacing: 0) {
                 header
-                Spacer(minLength: 12)
+                Spacer(minLength: 24)
                 DirectionalPad(
                     onDirection: { model.press($0.key) },
                     onConfirm: { model.press(.confirm) }
                 )
                 .opacity(model.isConnected ? 1 : 0.35)
                 .disabled(!model.isConnected)
-                Spacer(minLength: 12)
                 controlRow
-                    // The volume column and function keys are the first things the
+                    .padding(.top, 28)
+                    // The volume bar and function keys are the first things the
                     // keyboard swallows; hiding them beats showing half a control.
                     .opacity(isTyping ? 0 : 1)
             }
             .padding(.horizontal, 28)
-            .padding(.bottom, Self.collapsedDockHeight + 12)
+            .padding(.bottom, Self.collapsedDockHeight + Self.barLift + Self.dockClearance)
             // The software keyboard must not compress this either: when the
             // keyboard panel is open the dock rises above the keyboard and covers
             // the pad, which is expected — the pad shrinking is not.
@@ -136,7 +158,7 @@ struct RemoteHomeView: View {
             // it; it never moves out of the keyboard's way.
             ModeTabBar(model: model, mode: $dockMode)
                 .padding(.horizontal, 28)
-                .padding(.bottom, 12)
+                .padding(.bottom, Self.barLift)
         }
         // The panel is the one layer that rides the keyboard, lifted by the
         // measured height so the bar underneath can stay put and be covered.
@@ -179,6 +201,33 @@ struct RemoteHomeView: View {
     // MARK: - Header
 
     private var header: some View {
+        titleBlock
+            // Overlaid rather than placed in a row: the title stays centred on
+            // the screen, not on whatever is left of it.
+            .overlay(alignment: .topLeading) { devicesButton }
+            .padding(.top, 16)
+    }
+
+    /// The way to the device list, at the top-left corner where a screen's
+    /// "where am I / take me elsewhere" control belongs. It used to live behind
+    /// More → Switch TV, which is two taps and a guess for the one thing a
+    /// multi-device household does most.
+    private var devicesButton: some View {
+        Button {
+            KeyPressWeight.medium.fire()
+            onSwitchTV()
+        } label: {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 42, height: 42)
+                .contentShape(.circle)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
+        .accessibilityLabel("Devices")
+    }
+
+    private var titleBlock: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Circle()
@@ -208,7 +257,11 @@ struct RemoteHomeView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.top, 16)
+        .frame(maxWidth: .infinity)
+        // Clear of the device button on the left, and by the same amount on the
+        // right so a long device name stays optically centred rather than
+        // shunted sideways.
+        .padding(.horizontal, 50)
     }
 
     private var headerTitle: String {
@@ -240,9 +293,10 @@ struct RemoteHomeView: View {
     // MARK: - Controls
 
     private var controlRow: some View {
-        GlassEffectContainer(spacing: 40) {
-            HStack(alignment: .center, spacing: 40) {
-                functionKeys
+        // Tight: the bar and the keys are one cluster, and the bar already
+        // carries ~20pt of dead touch target on each side of its hairline.
+        GlassEffectContainer(spacing: 20) {
+            VStack(spacing: 8) {
                 // Absolute and relative volume are different SDK features, and a
                 // set can have only the second. Falling through to a rocker keeps
                 // volume reachable instead of leaving the screen with no way to
@@ -254,48 +308,83 @@ struct RemoteHomeView: View {
                         maxLevel: model.volume?.maxLevel ?? 100,
                         onCommit: { model.setVolume($0) }
                     )
-                    .frame(width: 64, height: 176)
+                    // Ends flush with the outer keys. Full-bleed it overhung the
+                    // row by half a column and stopped reading as part of the
+                    // cluster — it looked like a divider ruled across the screen.
+                    .padding(.horizontal, keyEdgeInset)
                 } else if model.supportsRelativeVolume {
                     volumeRocker
+                        .padding(.horizontal, keyEdgeInset)
                 }
+                functionKeys
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { controlWidth = $0 }
         .opacity(model.isConnected ? 1 : 0.35)
         .disabled(!model.isConnected)
     }
 
-    /// The fallback for a TV with no absolute-volume API: the two IRCC keys,
-    /// stacked in the slider's footprint so the layout does not reflow.
-    private var volumeRocker: some View {
-        GlassEffectContainer(spacing: 12) {
-            VStack(spacing: 12) {
-                GlassCircleKey(
-                    systemImage: "plus",
-                    accessibilityLabel: "Volume up"
-                ) { model.press(.volumeUp) }
-                GlassCircleKey(
-                    systemImage: "minus",
-                    accessibilityLabel: "Volume down"
-                ) { model.press(.volumeDown) }
-            }
-        }
-        .frame(width: 64, height: 176)
+    /// How far a key's edge sits from the edge of its column — the amount the
+    /// volume bar has to give up on each side to end where the outer keys do.
+    ///
+    /// Derived rather than hard-coded, because the row's key count is whatever
+    /// the TV reports: a set without a power key lays out three wider columns,
+    /// and a fixed inset would then be visibly wrong.
+    private var keyEdgeInset: CGFloat {
+        guard controlWidth > 0, visibleKeyCount > 0 else { return 0 }
+        let column = controlWidth / CGFloat(visibleKeyCount)
+        return max(0, (column - GlassCircleKey.diameter) / 2)
     }
 
+    private var visibleKeyCount: Int {
+        var count = 0
+        if model.supports(.back) { count += 1 }
+        if model.supports(.home) { count += 1 }
+        if model.supports(.mute) { count += 1 }
+        if model.supportsPowerControl || model.supports(.powerToggle) { count += 1 }
+        return count
+    }
+
+    /// The fallback for a TV with no absolute-volume API: the two IRCC keys,
+    /// side by side in the bar's footprint so the layout does not reflow.
+    private var volumeRocker: some View {
+        GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 12) {
+                GlassRectKey(
+                    systemImage: "minus",
+                    accessibilityLabel: "Volume down",
+                    height: 48
+                ) { model.press(.volumeDown) }
+                GlassRectKey(
+                    systemImage: "plus",
+                    accessibilityLabel: "Volume up",
+                    height: 48
+                ) { model.press(.volumeUp) }
+            }
+        }
+    }
+
+    /// The four round keys, each centred in an equal column rather than packed
+    /// at a fixed spacing. Keys come and go with `supportedKeys`, so a fixed
+    /// spacing gives the row a different width on every TV — and then the volume
+    /// bar above it and the tab bar below it line up with neither. Equal columns
+    /// pin all three to the same edges no matter how many keys survive.
     private var functionKeys: some View {
         GlassEffectContainer(spacing: 16) {
-            HStack(spacing: 16) {
+            HStack(spacing: 0) {
                 if model.supports(.back) {
                     GlassCircleKey(
                         systemImage: "arrow.uturn.left",
                         accessibilityLabel: "Back"
                     ) { model.press(.back) }
+                    .frame(maxWidth: .infinity)
                 }
                 if model.supports(.home) {
                     GlassCircleKey(
                         systemImage: "house.fill",
                         accessibilityLabel: "Home"
                     ) { model.press(.home) }
+                    .frame(maxWidth: .infinity)
                 }
                 if model.supports(.mute) {
                     GlassCircleKey(
@@ -303,6 +392,7 @@ struct RemoteHomeView: View {
                         accessibilityLabel: "Mute",
                         tint: model.volume?.isMuted == true ? .orange : nil
                     ) { model.press(.mute) }
+                    .frame(maxWidth: .infinity)
                 }
                 // Power goes through the SDK's setPower when the TV advertises
                 // it: that path tries every wake route, where the IRCC key alone
@@ -314,6 +404,7 @@ struct RemoteHomeView: View {
                         weight: .heavy,
                         tint: .red
                     ) { model.togglePower() }
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
