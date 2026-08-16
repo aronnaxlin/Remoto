@@ -31,3 +31,8 @@ Secrets.xcconfig
 .claude/
 .agents/
 skills-lock.json
+# Machine-local build tooling: buildServer.json is generated for whatever paths
+# this machine has, and xcede.yml names one particular paired device. Neither
+# means anything on another clone.
+buildServer.json
+xcede.yml
